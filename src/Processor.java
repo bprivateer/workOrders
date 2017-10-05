@@ -1,4 +1,5 @@
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.xml.internal.ws.api.pipe.FiberContextSwitchInterceptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -44,33 +45,43 @@ public class Processor {
                 WorkOrder firstInProgress = inProgressOrders.iterator().next();
                 inProgressOrders.remove(firstInProgress);
                 firstInProgress.setStatus(Status.DONE);
-                workOrders.get(Status.DONE).add(firstInProgress);
+                Set<WorkOrder> workOrderSet = workOrders.get(Status.DONE);
+                workOrderSet.add(firstInProgress);
+                workOrders.put(Status.DONE, workOrderSet);
             }
-            System.out.println("After Assigned " + inProgressOrders);
+//            System.out.println("After Assigned " + inProgressOrders);
 
             Set<WorkOrder> assignedOrders = workOrders.get(Status.ASSIGNED);
             if(assignedOrders.size() > 0){
-             WorkOrder firstAssigned = assignedOrders.iterator().next();
-             assignedOrders.remove(firstAssigned);
-             firstAssigned.setStatus(Status.IN_PROGRESS);
-             workOrders.get(Status.IN_PROGRESS).add(firstAssigned);
+                WorkOrder firstAssigned = assignedOrders.iterator().next();
+                assignedOrders.remove(firstAssigned);
+                firstAssigned.setStatus(Status.IN_PROGRESS);
+                Set<WorkOrder> workOrderSet = workOrders.get(Status.IN_PROGRESS);
+                workOrderSet.add(firstAssigned);
+                workOrders.put(Status.IN_PROGRESS, workOrderSet);
             }
-            System.out.println("assigned orders" + assignedOrders);
+//            System.out.println("assigned orders" + assignedOrders);
 
             Set<WorkOrder> initialOrders = workOrders.get(Status.INITIAL);
             if(initialOrders.size() > 0){
                 WorkOrder firstInitial = initialOrders.iterator().next();
                 initialOrders.remove(firstInitial);
-                firstInitial.setStatus(Status.INITIAL);
-                workOrders.get(Status.INITIAL).add(firstInitial);
+                firstInitial.setStatus(Status.ASSIGNED);
+                Set<WorkOrder> workOrderSet = workOrders.get(Status.ASSIGNED);
+                workOrderSet.add(firstInitial);
+                workOrders.put(Status.ASSIGNED, workOrderSet);
             }
-            System.out.println("Initial stuff " + initialOrders);
+//            System.out.println("Initial stuff " + initialOrders);
 
         }
 
         private void writeIt(){
-            for (Set<WorkOrder> order : workOrders.values()) {
-
+            for (Set<WorkOrder> orders : workOrders.values()) {
+                System.out.println(orders.toString());
+                for (WorkOrder order :orders) {
+                    System.out.println("Order: " + order.getStatus());
+                    Creator.writeAsJsonFile(order);
+                }
             }
         }
 
@@ -82,15 +93,23 @@ public class Processor {
             workOrders.put(Status.IN_PROGRESS, new HashSet<>());
             workOrders.put(Status.INITIAL, new HashSet<>());
             workOrders.put(Status.ASSIGNED, new HashSet<>());
+            workOrders.put(Status.DONE, new HashSet<>());
 
+            for(WorkOrder order: workOrdersArray){
+               Status currentStatus =  order.getStatus();
+               Set<WorkOrder> currentSet = workOrders.get(currentStatus);
+               currentSet.add(order);
+               workOrders.put(currentStatus, currentSet);
+            }
+//            System.out.println(workOrders.get(Status.INITIAL).isEmpty());
         }
 
 
-    private static File[] findAllJsonFiles(){
+    public static File[] findAllJsonFiles(){
         ArrayList<File> jsonFiles = new ArrayList<>();
         File directory = new File(".");
         for(File f : directory.listFiles()){
-            if(f.getName().endsWith(".json)")){
+            if(f.getName().endsWith(".json")){
                 jsonFiles.add(f);
             }
         }
@@ -106,6 +125,7 @@ public class Processor {
         for (String jsonString: jsonStrings) {
             try {
                 WorkOrder wo = mapper.readValue(jsonString, WorkOrder.class);
+                workOrders.add(wo);
             } catch (IOException e){
                 System.out.println("Exception thrown");
             }
@@ -121,7 +141,6 @@ public class Processor {
     public static String[] extractJsonStrings (File[] jsonFiles) {
 
         List<String> jsonStrings = new ArrayList<>();
-
         for (File file : jsonFiles) {
 
             try {
@@ -137,26 +156,6 @@ public class Processor {
 
         return jsonStrings.toArray(new String[0]);
     }
-
-
-
-//
-//    public static void writeAsJsonFile(WorkOrder workorder){
-//        try {
-//            ObjectMapper mapper = new ObjectMapper();
-//            String json = mapper.writeValueAsString(workorder);
-//
-//            File file = new File(workorder.getId() + ".json");
-//            FileWriter fileWriter = new FileWriter(file);
-//            fileWriter.write(json);
-//            fileWriter.close();
-//
-//
-//        } catch(IOException ex){
-//            System.out.println("IO Exception was caught" + ex );
-//        }
-//
-//    }
 
 
 }

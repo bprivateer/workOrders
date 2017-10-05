@@ -1,3 +1,5 @@
+import java.io.File;
+
 public class WorkOrder {
     private int id;
     private String description;
@@ -7,6 +9,8 @@ public class WorkOrder {
 
 
     public WorkOrder() {
+        File[] files = Processor.findAllJsonFiles();
+        nextId = files.length;
         this.id = getNextId();
     }
 

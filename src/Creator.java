@@ -22,7 +22,10 @@ public class Creator {
 
 
             //create work orders
-            WorkOrder order = new WorkOrder(description, nameOfSender, Status.INITIAL);
+            WorkOrder order = new WorkOrder();
+            order.setDescription(description);
+            order.setSenderName(nameOfSender);
+            order.setStatus(Status.INITIAL);
             writeAsJsonFile(order);
 
         }
